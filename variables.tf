@@ -71,16 +71,6 @@ variable "global_tags" {
 # COMPUTE
 # =============================================================================
 
-variable "web_ami_id" {
-  description = "AMI ID for Web Tier EC2 instances (Ubuntu 22.04 recommended)"
-  type        = string
-}
-
-variable "app_ami_id" {
-  description = "AMI ID for App Tier EC2 instances (Ubuntu 22.04 recommended)"
-  type        = string
-}
-
 variable "web_instance_type" {
   description = "EC2 instance type for the Web Tier"
   type        = string
@@ -157,6 +147,7 @@ variable "cors_origins" {
 variable "admin_email" {
   description = "Email address for SNS alarm notifications"
   type        = string
+  default     = "pruthvigbhaveri@gmail.com"
 }
 
 # =============================================================================
