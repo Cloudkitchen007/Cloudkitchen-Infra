@@ -1,0 +1,20 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+errored.tfstate
+
+# Secrets / local vars (NEVER commit)
+terraform.tfvars
+*.auto.tfvars
+
+# Build artifacts
+*.zip
+lambda/*/package/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
