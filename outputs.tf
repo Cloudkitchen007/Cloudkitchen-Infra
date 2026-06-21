@@ -122,6 +122,16 @@ output "cloudfront_url" {
   value       = aws_cloudfront_distribution.cdn.domain_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution id (for invalidations)"
+  value       = aws_cloudfront_distribution.cdn.id
+}
+
+output "frontend_bucket_name" {
+  description = "S3 bucket the built React SPA is synced to"
+  value       = aws_s3_bucket.frontend.id
+}
+
 output "api_gateway_url" {
   description = "API Gateway URL for Video Testimonials Presign"
   value       = aws_apigatewayv2_stage.default.invoke_url

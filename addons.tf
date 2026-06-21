@@ -262,9 +262,23 @@ resource "aws_cloudfront_distribution" "cdn" {
     response_page_path    = "/index.html"
   }
 
-  # NOTE (EKS-only): the ALB origin was removed. API traffic (/api, /auth) now
-  # goes to the kgateway NLB on EKS. Point CloudFront's API behavior at the NLB
-  # hostname after deploy, or have the frontend call the NLB directly.
+  # Origin 1: EKS API (kgateway NLB) — only added once var.eks_api_origin is set
+  # (the NLB is created by Kubernetes after the first apply, so the deploy does a
+  # second apply with -var=eks_api_origin=<nlb-dns>). CloudFront terminates TLS
+  # for the browser and talks HTTP to the NLB, so there is no mixed-content issue.
+  dynamic "origin" {
+    for_each = var.eks_api_origin != "" ? [1] : []
+    content {
+      domain_name = var.eks_api_origin
+      origin_id   = "eks-api-origin"
+      custom_origin_config {
+        http_port              = 80
+        https_port             = 443
+        origin_protocol_policy = "http-only" # kgateway NLB listens on :80
+        origin_ssl_protocols   = ["TLSv1.2"]
+      }
+    }
+  }
 
   # Origin 2: Testimonials S3 Bucket
   origin {
@@ -291,7 +305,20 @@ resource "aws_cloudfront_distribution" "cdn" {
     cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
   }
 
-  # (EKS-only) /api/* behavior removed — API now served by the EKS NLB.
+  # Ordered Behavior: /api/* and /auth/* -> EKS NLB (dynamic; cache disabled).
+  # Created only when var.eks_api_origin is set (second apply).
+  dynamic "ordered_cache_behavior" {
+    for_each = var.eks_api_origin != "" ? ["/api/*", "/auth/*"] : []
+    content {
+      path_pattern             = ordered_cache_behavior.value
+      target_origin_id         = "eks-api-origin"
+      viewer_protocol_policy   = "redirect-to-https"
+      allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods           = ["GET", "HEAD"]
+      cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+      origin_request_policy_id = aws_cloudfront_origin_request_policy.api_orp.id
+    }
+  }
 
   # Ordered Behavior 2: /testimonials/* -> Route to S3 Bucket (Cache Optimized)
   ordered_cache_behavior {

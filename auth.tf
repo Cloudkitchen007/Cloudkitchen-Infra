@@ -8,22 +8,9 @@
 #   default → /*              App Service   (port 8080)  [main.tf]
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# 1. PACKAGE & UPLOAD AUTH SERVICE CODE TO S3 (same pattern as AI service)
-# ---------------------------------------------------------------------------
-
-data "archive_file" "auth_service_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/../services/auth-service"
-  output_path = "${path.module}/auth_service.zip"
-}
-
-resource "aws_s3_object" "auth_service_code" {
-  bucket = aws_s3_bucket.testimonials.id
-  key    = "deployments/auth_service.zip"
-  source = data.archive_file.auth_service_zip.output_path
-  etag   = filemd5(data.archive_file.auth_service_zip.output_path)
-}
+# (EKS-only) Auth service code is built into a container image by cloudkitchen-app
+# CI and pulled from ECR — no source zip built here. This file now only manages
+# the Cognito user pools.
 
 # ---------------------------------------------------------------------------
 # 2. COGNITO – Customer User Pool

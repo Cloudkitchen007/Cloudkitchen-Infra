@@ -131,6 +131,19 @@ variable "github_repo" {
   default     = "https://github.com/PruthviBhat-UST/cloudkitchen-aws.git"
 }
 
+variable "slack_webhook_url" {
+  description = "Slack Incoming Webhook URL for Alertmanager notifications (kept in gitignored tfvars)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "eks_api_origin" {
+  description = "DNS name of the EKS kgateway NLB; set on the SECOND apply so CloudFront can route /api and /auth to it. Empty on the first apply (NLB doesn't exist yet)."
+  type        = string
+  default     = ""
+}
+
 variable "cors_origins" {
   description = "Allowed CORS origins for the Spring Boot backend"
   type        = string
