@@ -43,6 +43,7 @@ class DRState(TypedDict):
     incidents: list       # detected incidents [{resource, issue, action, severity}]
     analysis: str         # LLM narrative or rule-based summary
     actions_taken: list   # results of recovery actions
+    status: str           # "healthy" | "degraded" — written by report node
 
 
 # ── Node: observe ─────────────────────────────────────────────────────────────
@@ -253,10 +254,11 @@ def act(state: DRState) -> dict:
 
 def report(state: DRState) -> dict:
     """Emit a structured CloudWatch log for every run (healthy or not)."""
+    run_status = "degraded" if state.get("incidents") else "healthy"
     log_entry = {
         "dr_agent":          "cloudkitchen-dr",
         "incidents_detected": len(state.get("incidents", [])),
-        "status":            "degraded" if state.get("incidents") else "healthy",
+        "status":            run_status,
         "analysis":          state.get("analysis", ""),
         "actions_taken":     state.get("actions_taken", []),
         "health_summary": {
@@ -265,7 +267,7 @@ def report(state: DRState) -> dict:
         },
     }
     logger.info("DR-REPORT: %s", json.dumps(log_entry))
-    return {}
+    return {"status": run_status}   # LangGraph 0.2.38+ requires at least one key
 
 
 def _is_degraded(value) -> bool:
@@ -312,12 +314,13 @@ def lambda_handler(event, context):
         "incidents":     [],
         "analysis":      "",
         "actions_taken": [],
+        "status":        "",
     })
 
     return {
         "statusCode":        200,
         "incidents_detected": len(result.get("incidents", [])),
-        "status":            "degraded" if result.get("incidents") else "healthy",
+        "status":            result.get("status", "healthy"),
         "actions_taken":     result.get("actions_taken", []),
         "analysis":          result.get("analysis", ""),
     }

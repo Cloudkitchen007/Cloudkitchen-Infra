@@ -42,13 +42,17 @@ resource "null_resource" "dr_agent_build" {
     command     = <<-CMD
       set -e
       rm -rf package && mkdir -p package
-      echo "DR Agent: installing Python dependencies..."
-      pip3 install -r requirements.txt -t package -q 2>/dev/null \
-        || pip install -r requirements.txt -t package -q 2>/dev/null \
-        || python3 -m pip install -r requirements.txt -t package -q 2>/dev/null \
-        || "$HOME/AppData/Local/Programs/Python/Python313/Scripts/pip3.exe" install -r requirements.txt -t package -q \
-        || "$HOME/AppData/Local/Programs/Python/Python312/Scripts/pip3.exe" install -r requirements.txt -t package -q \
-        || "$HOME/AppData/Local/Programs/Python/Python311/Scripts/pip3.exe" install -r requirements.txt -t package -q \
+      echo "DR Agent: installing Python dependencies (Linux Lambda target)..."
+      # --platform manylinux2014_x86_64 downloads Linux .so wheels even when
+      # building on Windows or macOS, preventing the "No module named pydantic_core"
+      # error that occurs when Windows .pyd files are uploaded to Lambda.
+      _pip_flags="-r requirements.txt -t package -q --platform manylinux2014_x86_64 --implementation cp --python-version 311 --only-binary :all: --upgrade"
+      pip3 install $_pip_flags 2>/dev/null \
+        || pip install $_pip_flags 2>/dev/null \
+        || python3 -m pip install $_pip_flags 2>/dev/null \
+        || "$HOME/AppData/Local/Programs/Python/Python313/Scripts/pip3.exe" install $_pip_flags 2>/dev/null \
+        || "$HOME/AppData/Local/Programs/Python/Python312/Scripts/pip3.exe" install $_pip_flags 2>/dev/null \
+        || "$HOME/AppData/Local/Programs/Python/Python311/Scripts/pip3.exe" install $_pip_flags 2>/dev/null \
         || { echo "ERROR: pip not found. Install Python 3.11+ and re-run terraform apply."; exit 1; }
       cp agent.py tools.py package/
       echo "DR Agent Lambda package ready."
