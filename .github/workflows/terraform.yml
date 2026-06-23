@@ -29,6 +29,16 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: Build DR Agent Lambda package
+        working-directory: lambda/dr-agent
+        run: |
+          pip install -r requirements.txt -t package -q \
+            --platform manylinux2014_x86_64 \
+            --implementation cp \
+            --python-version 311 \
+            --only-binary :all:
+          cp agent.py tools.py package/
+
       - name: Terraform Init
         run: terraform init
       - name: Terraform Format
@@ -57,6 +67,15 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: Build DR Agent Lambda package
+        working-directory: lambda/dr-agent
+        run: |
+          pip install -r requirements.txt -t package -q \
+            --platform manylinux2014_x86_64 \
+            --implementation cp \
+            --python-version 311 \
+            --only-binary :all:
+          cp agent.py tools.py package/
       - name: Terraform Init
         run: terraform init
       - name: Terraform Apply

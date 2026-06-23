@@ -67,6 +67,7 @@ resource "aws_subnet" "public" {
   availability_zone       = each.value.az
   map_public_ip_on_launch = true
   tags                    = merge({ Name = "${local.env_prefix}-public-${each.key}", Tier = "Public" }, var.global_tags)
+  lifecycle { ignore_changes = [tags] }
 }
 
 resource "aws_subnet" "private_app" {
@@ -79,6 +80,7 @@ resource "aws_subnet" "private_app" {
   availability_zone       = each.value.az
   map_public_ip_on_launch = false
   tags                    = merge({ Name = "${local.env_prefix}-app-${each.key}", Tier = "PrivateApp" }, var.global_tags)
+  lifecycle { ignore_changes = [tags] }
 }
 
 resource "aws_subnet" "private_db" {
@@ -91,6 +93,7 @@ resource "aws_subnet" "private_db" {
   availability_zone       = each.value.az
   map_public_ip_on_launch = false
   tags                    = merge({ Name = "${local.env_prefix}-db-${each.key}", Tier = "PrivateDB" }, var.global_tags)
+  lifecycle { ignore_changes = [tags] }
 }
 
 resource "aws_eip" "nat" {
