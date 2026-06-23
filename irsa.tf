@@ -166,7 +166,7 @@ resource "aws_secretsmanager_secret_version" "app_runtime" {
     SPRING_DATASOURCE_URL      = "jdbc:postgresql://${aws_db_instance.this.address}:5432/${aws_db_instance.this.db_name}"
     SPRING_DATASOURCE_USERNAME = aws_db_instance.this.username
     HUGGINGFACEHUB_API_TOKEN   = var.hf_api_token
-    SQS_ORDERS_QUEUE_URL       = aws_sqs_queue.orders_queue.url
+    AWS_SQS_ORDERS_QUEUE_URL   = aws_sqs_queue.orders_queue.url
     HF_MODEL                   = "mistralai/Mistral-7B-Instruct-v0.3"
     USER_POOL_ID               = aws_cognito_user_pool.users.id
     USER_CLIENT_ID             = aws_cognito_user_pool_client.users.id

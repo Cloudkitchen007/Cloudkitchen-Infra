@@ -206,18 +206,15 @@ resource "aws_security_group" "app_sg" {
 }
 
 # ── Database Tier: RDS PostgreSQL ──────────────────────────────────────────
+# Inline ingress blocks are intentionally absent — all rules are managed as
+# separate aws_security_group_rule resources (in this file and eks.tf) to
+# prevent Terraform from silently dropping the EKS rule when it reconciles
+# the SG. Mixing inline rules with separate rules on the same SG is a known
+# Terraform footgun: inline rules win and overwrite external ones on every plan.
 resource "aws_security_group" "db_sg" {
   name        = "${local.env_prefix}-db-sg"
   description = "DB Tier - PostgreSQL 5432 from App Tier only"
   vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "PostgreSQL from App Tier"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app_sg.id]
-  }
 
   egress {
     from_port   = 0
@@ -227,6 +224,18 @@ resource "aws_security_group" "db_sg" {
   }
 
   tags = merge({ Name = "${local.env_prefix}-db-sg" }, var.global_tags)
+}
+
+# Keep the app_sg → db rule as a separate resource so it co-exists safely
+# with the EKS cluster SG rule defined in eks.tf (aws_security_group_rule.eks_to_db).
+resource "aws_security_group_rule" "app_to_db" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.db_sg.id
+  source_security_group_id = aws_security_group.app_sg.id
+  description              = "PostgreSQL from App Tier"
 }
 
 # =============================================================================
