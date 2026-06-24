@@ -341,6 +341,8 @@ resource "aws_cloudfront_distribution" "cdn" {
     cloudfront_default_certificate = true
   }
 
+  web_acl_id = aws_wafv2_web_acl.cloudfront.arn
+
   tags = var.global_tags
 }
 
