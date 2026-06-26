@@ -16,8 +16,6 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.admin_email
 }
 
-# NOTE: ALB 5xx alarm removed in the EKS-only migration (no ALB). Service
-# health on EKS is observed via the kgateway/NLB target health + Prometheus.
 
 # ── 2. Testimonials S3 Bucket ─────────────────────────────────────────────
 

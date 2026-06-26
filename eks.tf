@@ -1,12 +1,5 @@
 # =============================================================================
 # CLOUDKITCHEN – EKS CLUSTER
-#
-# Creates a managed Kubernetes cluster that will host all 4 microservices
-# once Docker images are built and pushed to ECR.
-#
-# Node group: t3.medium, 2 nodes (min 1 / max 4) — cost-effective for review
-# Images:     stored in ECR repos defined in ecr.tf
-# Next step:  CI/CD via GitHub Actions + ArgoCD + Helm (Phase 2)
 # =============================================================================
 
 locals {
@@ -179,12 +172,6 @@ resource "aws_eks_addon" "kube_proxy" {
   tags                        = var.global_tags
 }
 
-# NOTE: aws-ebs-csi-driver add-on intentionally omitted.
-# It requires an IRSA IAM role (OIDC provider + service-account role) to become
-# healthy, and all CloudKitchen microservices are stateless (data lives in RDS),
-# so no EBS-backed PersistentVolumes are needed. Adding it without IRSA causes a
-# 20-minute "CREATING" timeout on apply. Re-add with proper IRSA only if a
-# workload later needs dynamic block storage.
 
 # ── 6. Subnet tags required for AWS Load Balancer Controller ──────────────────
 # Public subnets: external (internet-facing) ALB
@@ -216,4 +203,28 @@ resource "aws_ec2_tag" "private_subnet_cluster" {
   resource_id = each.value.id
   key         = "kubernetes.io/cluster/${local.eks_cluster_name}"
   value       = "shared"
+}
+
+# ── 7. Kubernetes Namespaces for multi-environment deployment ──────────────────
+
+resource "kubernetes_namespace" "dev" {
+  metadata {
+    name = "dev"
+    labels = {
+      name        = "dev"
+      environment = "development"
+    }
+  }
+  depends_on = [aws_eks_node_group.main]
+}
+
+resource "kubernetes_namespace" "prod" {
+  metadata {
+    name = "prod"
+    labels = {
+      name        = "prod"
+      environment = "production"
+    }
+  }
+  depends_on = [aws_eks_node_group.main]
 }
