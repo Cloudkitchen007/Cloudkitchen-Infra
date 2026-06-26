@@ -204,27 +204,3 @@ resource "aws_ec2_tag" "private_subnet_cluster" {
   key         = "kubernetes.io/cluster/${local.eks_cluster_name}"
   value       = "shared"
 }
-
-# ── 7. Kubernetes Namespaces for multi-environment deployment ──────────────────
-
-resource "kubernetes_namespace" "dev" {
-  metadata {
-    name = "dev"
-    labels = {
-      name        = "dev"
-      environment = "development"
-    }
-  }
-  depends_on = [aws_eks_node_group.main]
-}
-
-resource "kubernetes_namespace" "prod" {
-  metadata {
-    name = "prod"
-    labels = {
-      name        = "prod"
-      environment = "production"
-    }
-  }
-  depends_on = [aws_eks_node_group.main]
-}

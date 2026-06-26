@@ -23,8 +23,9 @@ resource "aws_iam_openid_connect_provider" "eks" {
 }
 
 locals {
-  oidc_url      = replace(aws_eks_cluster.cloudkitchen.identity[0].oidc[0].issuer, "https://", "")
-  k8s_namespace = "production"
+  oidc_url       = replace(aws_eks_cluster.cloudkitchen.identity[0].oidc[0].issuer, "https://", "")
+  k8s_namespace  = "production"
+  k8s_namespaces = ["production", "prod", "dev"]
 }
 
 # ── IRSA role: External Secrets Operator (read Secrets Manager) ───────────────
@@ -44,7 +45,7 @@ data "aws_iam_policy_document" "eso_assume" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_url}:sub"
-      values   = ["system:serviceaccount:${local.k8s_namespace}:external-secrets-sa"]
+      values   = [for ns in local.k8s_namespaces : "system:serviceaccount:${ns}:external-secrets-sa"]
     }
   }
 }
@@ -85,7 +86,7 @@ data "aws_iam_policy_document" "ai_assume" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_url}:sub"
-      values   = ["system:serviceaccount:${local.k8s_namespace}:ai"]
+      values   = [for ns in local.k8s_namespaces : "system:serviceaccount:${ns}:ai"]
     }
   }
 }
@@ -126,7 +127,7 @@ data "aws_iam_policy_document" "order_assume" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_url}:sub"
-      values   = ["system:serviceaccount:${local.k8s_namespace}:order"]
+      values   = [for ns in local.k8s_namespaces : "system:serviceaccount:${ns}:order"]
     }
   }
 }
