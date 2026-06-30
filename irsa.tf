@@ -151,6 +151,54 @@ resource "aws_iam_role_policy" "order_sqs" {
   })
 }
 
+# ── IRSA role: auth pod (call Cognito for signup/login) ───────────────────────
+data "aws_iam_policy_document" "auth_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_url}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${local.oidc_url}:sub"
+      values   = [for ns in local.k8s_namespaces : "system:serviceaccount:${ns}:auth"]
+    }
+  }
+}
+
+resource "aws_iam_role" "auth_irsa" {
+  name               = "${local.env_prefix}-auth-irsa"
+  assume_role_policy = data.aws_iam_policy_document.auth_assume.json
+  tags               = var.global_tags
+}
+
+resource "aws_iam_role_policy" "auth_cognito" {
+  name = "${local.env_prefix}-auth-cognito"
+  role = aws_iam_role.auth_irsa.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "cognito-idp:SignUp",
+        "cognito-idp:AdminConfirmSignUp",
+        "cognito-idp:InitiateAuth",
+      ]
+      Resource = [
+        aws_cognito_user_pool.users.arn,
+        aws_cognito_user_pool.restaurants.arn,
+      ]
+    }]
+  })
+}
+
 # ── Consolidated app-runtime secret (ESO syncs this → cloudkitchen-secrets) ───
 # Non‑DB‑password values are assembled by Terraform from live resources, so a
 # destroy/recreate always produces fresh Cognito IDs / endpoints. The DB
@@ -192,4 +240,8 @@ output "ai_irsa_role_arn" {
 output "order_irsa_role_arn" {
   description = "IRSA role ARN for the order service account"
   value       = aws_iam_role.order_irsa.arn
+}
+output "auth_irsa_role_arn" {
+  description = "IRSA role ARN for the auth service account"
+  value       = aws_iam_role.auth_irsa.arn
 }
